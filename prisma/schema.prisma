@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum ProjectStatus {
+  ONGOING
+  COMPLETED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  password        String
+  role            UserRole @default(USER)
+  isEmailVerified Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile  Profile?
+  projects Project[]
+  blogs    Blog[]
+
+  @@map("users")
+}
+
+model Profile {
+  id           String  @id @default(uuid())
+  firstName    String
+  lastName     String?
+  bio          String? @db.Text
+  profileImage String?
+  coverImage   String?
+  resumeUrl    String?
+  githubUrl    String?
+  linkedinUrl  String?
+  userId       String  @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  skills      Skill[]
+  experiences Experience[]
+  educations  Education[]
+  user        User         @relation(fields: [userId], references: [id])
+  contacts    Contact[]
+  about       About?
+
+  @@map("profiles")
+}
+
+model Project {
+  id           String        @id @default(uuid())
+  title        String
+  description  String        @db.Text
+  image        String?
+  liveUrl      String?
+  githubUrl    String?
+  status       ProjectStatus @default(ONGOING)
+  technologies String[]
+  userId       String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("projects")
+}
+
+model Experience {
+  id          String         @id @default(uuid())
+  title       String
+  company     String
+  location    String?
+  type        EmploymentType
+  startDate   DateTime
+  endDate     DateTime?
+  isCurrent   Boolean        @default(false)
+  description String[]       @db.Text
+  profileId   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id])
+
+  @@map("experiences")
+}
+
+model Education {
+  id           String    @id @default(uuid())
+  school       String
+  degree       String
+  fieldOfStudy String
+  location     String?
+  startDate    DateTime
+  endDate      DateTime?
+  isCurrent    Boolean   @default(false)
+  grade        String?
+  activities   String?   @db.Text
+  description  String[]  @db.Text
+  profileId    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id])
+
+  @@map("educations")
+}
+
+model Skill {
+  id          String @id @default(uuid())
+  name        String
+  proficiency Int    @default(0)
+  profileId   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id])
+
+  @@map("skills")
+}
+
+model Contact {
+  id        String @id @default(uuid())
+  name      String
+  email     String
+  subject   String
+  message   String @db.Text
+  profileId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id])
+
+  @@map("contacts")
+}
+
+model BlogCategory {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String  @unique
+  description String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  blogs Blog[]
+
+  @@map("blog_categories")
+}
+
+model Blog {
+  id              String     @id @default(uuid())
+  title           String
+  slug            String     @unique
+  summary         String?    @db.Text
+  content         String     @db.Text
+  featuredImage   String?
+  status          BlogStatus @default(DRAFT)
+  tags            String[]
+  userId          String
+  categoryId      String
+  metaTitle       String?
+  metaDescription String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User         @relation(fields: [userId], references: [id])
+  category BlogCategory @relation(fields: [categoryId], references: [id])
+
+  @@map("blogs")
+}
+
+model About {
+  id              String   @id @default(uuid())
+  introduction    String   @db.Text
+  overview        String   @db.Text
+  servicesOffered String[]
+  toolsAndTech    String[]
+  achievements    String[]
+  profileId       String   @unique
+  metaTitle       String?
+  metaDescription String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id])
+
+  @@map("about")
+}
