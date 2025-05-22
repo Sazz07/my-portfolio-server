@@ -77,7 +77,7 @@ model Project {
   id           String        @id @default(uuid())
   title        String
   description  String        @db.Text
-  image        String?
+  images       String[]
   liveUrl      String?
   githubUrl    String?
   status       ProjectStatus @default(ONGOING)
@@ -185,6 +185,7 @@ model Blog {
   summary         String?    @db.Text
   content         String     @db.Text
   featuredImage   String?
+  images          String[]
   status          BlogStatus @default(DRAFT)
   tags            String[]
   userId          String

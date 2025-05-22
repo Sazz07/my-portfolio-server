@@ -6,20 +6,10 @@ import { ProjectService } from './project.service';
 import pick from '../../../shared/pick';
 
 const createProject = catchAsync(async (req: Request, res: Response) => {
-  if (req.body.technologies && typeof req.body.technologies === 'string') {
-    try {
-      req.body.technologies = JSON.parse(req.body.technologies);
-    } catch (error) {
-      if (!Array.isArray(req.body.technologies)) {
-        req.body.technologies = [req.body.technologies];
-      }
-    }
-  }
-
   const result = await ProjectService.createProject(
     req.user.userId,
     req.body,
-    req.file as any
+    req.files as Express.Multer.File[]
   );
 
   sendResponse(res, {
@@ -57,23 +47,11 @@ const getSingleProject = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateProject = catchAsync(async (req: Request, res: Response) => {
-  // Parse technologies if it's a JSON string
-  if (req.body.technologies && typeof req.body.technologies === 'string') {
-    try {
-      req.body.technologies = JSON.parse(req.body.technologies);
-    } catch (error) {
-      // If parsing fails, keep it as is (might be a single technology)
-      if (!Array.isArray(req.body.technologies)) {
-        req.body.technologies = [req.body.technologies];
-      }
-    }
-  }
-
   const result = await ProjectService.updateProject(
     req.params.id,
     req.user.userId,
     req.body,
-    req.file as any
+    req.files as Express.Multer.File[]
   );
 
   sendResponse(res, {

@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
+import fs from 'fs';
 import config from '../config';
-import { ICloudinaryResponse, IUploadFile } from '../interfaces/common';
+import { ICloudinaryResponse } from '../interfaces/common';
 
 cloudinary.config({
   cloud_name: config.cloudinary.cloud_name,
@@ -9,12 +10,16 @@ cloudinary.config({
 });
 
 const uploadToCloudinary = async (
-  file: IUploadFile
+  file: Express.Multer.File
 ): Promise<ICloudinaryResponse> => {
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload(
       file.path,
       (error: Error, result: ICloudinaryResponse) => {
+        if (file.path) {
+          fs.unlinkSync(file.path);
+        }
+
         if (error) {
           reject(error);
         } else {

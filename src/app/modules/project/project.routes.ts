@@ -1,10 +1,9 @@
 import express from 'express';
 import auth from '../../middlewares/auth';
 import { UserRole } from '@prisma/client';
-import validateRequest from '../../middlewares/validateRequest';
 import { ProjectValidation } from './project.validation';
 import { ProjectController } from './project.controller';
-import { uploadMultiple, uploadSingle } from '../../middlewares/upload';
+import { createFileUploadMiddleware } from '../../middlewares/fileUploadMiddleware';
 
 const router = express.Router();
 
@@ -16,16 +15,24 @@ router.get('/:id', ProjectController.getSingleProject);
 router.post(
   '/',
   auth(UserRole.USER, UserRole.ADMIN),
-  uploadSingle('image'),
-  validateRequest(ProjectValidation.createProjectZodSchema),
+  createFileUploadMiddleware({
+    fieldName: 'images',
+    maxCount: 5,
+    parseData: true,
+    validationSchema: ProjectValidation.createProjectZodSchema,
+  }),
   ProjectController.createProject
 );
 
 router.patch(
   '/:id',
   auth(UserRole.USER, UserRole.ADMIN),
-  uploadSingle('image'),
-  validateRequest(ProjectValidation.updateProjectZodSchema),
+  createFileUploadMiddleware({
+    fieldName: 'images',
+    maxCount: 5,
+    parseData: true,
+    validationSchema: ProjectValidation.updateProjectZodSchema,
+  }),
   ProjectController.updateProject
 );
 

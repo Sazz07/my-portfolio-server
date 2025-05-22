@@ -1,7 +1,6 @@
 import httpStatus from 'http-status';
 import prisma from '../../../shared/prisma';
 import { FileUploadHelper } from '../../../helpers/fileUploadHelper';
-import { IUploadFile } from '../../../interfaces/common';
 import { IPaginationOptions } from '../../../interfaces/common';
 import { Project, Prisma } from '@prisma/client';
 import { paginationHelpers } from '../../../helpers/paginationHelper';
@@ -16,19 +15,27 @@ const createProject = async (
     githubUrl?: string;
     technologies?: string[];
   },
-  file?: IUploadFile
+  files?: Express.Multer.File[]
 ): Promise<Project> => {
   let imageUrl: string | undefined;
+  let imageUrls: string[] = [];
 
-  if (file) {
-    const uploadedImage = await FileUploadHelper.uploadToCloudinary(file);
-    imageUrl = uploadedImage.secure_url;
+  if (files && files.length > 0) {
+    const uploadPromises = files.map((file) =>
+      FileUploadHelper.uploadToCloudinary(file)
+    );
+
+    const uploadResults = await Promise.all(uploadPromises);
+
+    imageUrls = uploadResults.map((result) => result.secure_url);
+
+    imageUrl = imageUrls[0];
   }
 
   const result = await prisma.project.create({
     data: {
       ...payload,
-      image: imageUrl,
+      images: imageUrls,
       userId,
     },
   });
@@ -104,7 +111,7 @@ const updateProject = async (
   id: string,
   userId: string,
   payload: Partial<Project>,
-  file?: IUploadFile
+  files?: Express.Multer.File[]
 ): Promise<Project> => {
   const project = await prisma.project.findUnique({
     where: { id },
@@ -118,27 +125,41 @@ const updateProject = async (
     throw new ApiError(httpStatus.FORBIDDEN, 'You cannot update this project');
   }
 
-  let imageUrl: string | undefined;
+  let imageUrls: string[] = [];
 
-  if (file) {
-    // Delete old image if exists
-    if (project.image) {
-      const publicId = project.image.split('/').pop()?.split('.')[0];
-      if (publicId) {
-        await FileUploadHelper.deleteFromCloudinary(publicId);
-      }
+  if (files && files.length > 0) {
+    if (project.images && project.images.length > 0) {
+      const deletePromises = project.images.map((image) => {
+        const publicId = image.split('/').pop()?.split('.')[0];
+        if (publicId) {
+          return FileUploadHelper.deleteFromCloudinary(publicId);
+        }
+        return Promise.resolve(true);
+      });
+
+      await Promise.all(deletePromises);
     }
 
-    const uploadedImage = await FileUploadHelper.uploadToCloudinary(file);
-    imageUrl = uploadedImage.secure_url;
+    // Upload new images
+    const uploadPromises = files.map((file) =>
+      FileUploadHelper.uploadToCloudinary(file)
+    );
+
+    const uploadResults = await Promise.all(uploadPromises);
+    imageUrls = uploadResults.map((result) => result.secure_url);
+  }
+
+  const updateData: any = {
+    ...payload,
+  };
+
+  if (files && files.length > 0) {
+    updateData.images = imageUrls;
   }
 
   const result = await prisma.project.update({
     where: { id },
-    data: {
-      ...payload,
-      ...(imageUrl && { image: imageUrl }),
-    },
+    data: updateData,
   });
 
   return result;
@@ -155,14 +176,6 @@ const deleteProject = async (id: string, userId: string): Promise<void> => {
 
   if (project.userId !== userId) {
     throw new ApiError(httpStatus.FORBIDDEN, 'You cannot delete this project');
-  }
-
-  // Delete project image from cloudinary if exists
-  if (project.image) {
-    const publicId = project.image.split('/').pop()?.split('.')[0];
-    if (publicId) {
-      await FileUploadHelper.deleteFromCloudinary(publicId);
-    }
   }
 
   await prisma.project.delete({

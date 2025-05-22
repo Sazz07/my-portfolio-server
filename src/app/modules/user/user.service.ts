@@ -1,7 +1,6 @@
 import httpStatus from 'http-status';
 import prisma from '../../../shared/prisma';
 import { FileUploadHelper } from '../../../helpers/fileUploadHelper';
-import { IUploadFile } from '../../../interfaces/common';
 import { User, Profile } from '@prisma/client';
 import ApiError from '../../../errors/ApiError';
 
@@ -29,7 +28,8 @@ const getProfile = async (userId: string): Promise<UserWithProfile> => {
 
 const updateProfile = async (
   userId: string,
-  payload: Partial<Profile>
+  payload: Partial<Profile>,
+  file?: Express.Multer.File
 ): Promise<Profile> => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -40,45 +40,33 @@ const updateProfile = async (
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  const result = await prisma.profile.update({
-    where: { userId: user.id },
-    data: payload,
-  });
-
-  return result;
-};
-
-const updateProfileImage = async (
-  userId: string,
-  file: IUploadFile
-): Promise<Profile> => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { profile: true },
-  });
-
-  if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
-  }
-
-  const uploadedImage = await FileUploadHelper.uploadToCloudinary(file);
-
-  if (!uploadedImage) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Image upload failed');
-  }
-
-  // Delete old image if exists
-  if (user.profile?.profileImage) {
-    const publicId = user.profile.profileImage.split('/').pop()?.split('.')[0];
-    if (publicId) {
-      await FileUploadHelper.deleteFromCloudinary(publicId);
+  // Handle image upload if file is provided
+  let profileImageUrl = undefined;
+  
+  if (file) {
+    const uploadedImage = await FileUploadHelper.uploadToCloudinary(file);
+    
+    if (!uploadedImage) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Image upload failed');
     }
+    
+    // Delete old image if exists
+    if (user.profile?.profileImage) {
+      const publicId = user.profile.profileImage.split('/').pop()?.split('.')[0];
+      if (publicId) {
+        await FileUploadHelper.deleteFromCloudinary(publicId);
+      }
+    }
+    
+    profileImageUrl = uploadedImage.secure_url;
   }
 
+  // Update profile with both data and image if provided
   const result = await prisma.profile.update({
     where: { userId: user.id },
     data: {
-      profileImage: uploadedImage.secure_url,
+      ...payload,
+      ...(profileImageUrl && { profileImage: profileImageUrl }),
     },
   });
 
@@ -88,5 +76,4 @@ const updateProfileImage = async (
 export const UserService = {
   getProfile,
   updateProfile,
-  updateProfileImage,
 };

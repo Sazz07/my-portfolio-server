@@ -16,7 +16,14 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
-  const result = await UserService.updateProfile(req.user.userId, req.body);
+  const files = req.files as Express.Multer.File[];
+  const file = files && files.length > 0 ? files[0] : undefined;
+  
+  const result = await UserService.updateProfile(
+    req.user.userId, 
+    req.body,
+    file
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -26,24 +33,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const updateProfileImage = catchAsync(async (req: Request, res: Response) => {
-  const file = req.file;
-
-  const result = await UserService.updateProfileImage(
-    req.user.userId,
-    file as any
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Profile image updated successfully',
-    data: result,
-  });
-});
-
 export const UserController = {
   getProfile,
   updateProfile,
-  updateProfileImage,
 };

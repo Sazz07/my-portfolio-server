@@ -4,7 +4,7 @@ import { UserRole } from '@prisma/client';
 import validateRequest from '../../middlewares/validateRequest';
 import { BlogValidation } from './blog.validation';
 import { BlogController } from './blog.controller';
-import { uploadSingle } from '../../middlewares/upload';
+import { createFileUploadMiddleware } from '../../middlewares/fileUploadMiddleware';
 
 const router = express.Router();
 
@@ -37,8 +37,12 @@ router.delete(
 router.post(
   '/',
   auth(UserRole.USER, UserRole.ADMIN),
-  uploadSingle('featuredImage'),
-  validateRequest(BlogValidation.createBlogZodSchema),
+  createFileUploadMiddleware({
+    fieldName: 'images',
+    maxCount: 5,
+    parseData: true,
+    validationSchema: BlogValidation.createBlogZodSchema,
+  }),
   BlogController.createBlog
 );
 
@@ -55,8 +59,12 @@ router.get('/:idOrSlug', BlogController.getSingleBlog);
 router.patch(
   '/:idOrSlug',
   auth(UserRole.USER, UserRole.ADMIN),
-  uploadSingle('featuredImage'),
-  validateRequest(BlogValidation.updateBlogZodSchema),
+  createFileUploadMiddleware({
+    fieldName: 'images',
+    maxCount: 5,
+    parseData: true,
+    validationSchema: BlogValidation.updateBlogZodSchema,
+  }),
   BlogController.updateBlog
 );
 

@@ -5,6 +5,7 @@ export type ICreateBlog = {
   summary?: string;
   content: string;
   featuredImage?: string;
+  images?: string[];
   status?: BlogStatus;
   tags?: string[];
   categoryId: string;
@@ -28,6 +29,7 @@ export type IBlogWithAuthorCategory = {
   summary?: string;
   content: string;
   featuredImage?: string;
+  images?: string[];
   status: BlogStatus;
   tags: string[];
   metaTitle?: string;

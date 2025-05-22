@@ -18,26 +18,33 @@ import {
   extractFilenameFromUrl,
 } from '../../../utils/image';
 import { BlogHelper } from './blog.helper';
+import { FileUploadHelper } from '../../../helpers/fileUploadHelper';
 
 const createBlog = async (
   authUserId: string,
   payload: ICreateBlog,
-  file?: Express.Multer.File
+  files?: Express.Multer.File[]
 ) => {
-  // Handle image upload if present
   let featuredImage = undefined;
-  if (file) {
-    const optimizedImage = await optimizeImage(file.buffer);
-    featuredImage = optimizedImage.url;
+  let imageUrls: string[] = [];
+
+  if (files && files.length > 0) {
+    const uploadPromises = files.map((file) =>
+      FileUploadHelper.uploadToCloudinary(file)
+    );
+
+    const uploadResults = await Promise.all(uploadPromises);
+
+    imageUrls = uploadResults.map((result) => result.secure_url);
+
+    featuredImage = imageUrls[0];
   }
 
-  // Generate slug from title
   const slug = slugify(payload.title, {
     lower: true,
     strict: true,
   });
 
-  // Check if slug already exists
   const existingBlog = await prisma.blog.findUnique({
     where: { slug },
   });
@@ -54,6 +61,7 @@ const createBlog = async (
       ...payload,
       slug,
       featuredImage,
+      images: imageUrls,
       userId: authUserId,
     },
   });
@@ -259,7 +267,7 @@ const updateBlog = async (
   idOrSlug: string,
   authUser: JwtPayload,
   payload: IUpdateBlog,
-  file?: Express.Multer.File
+  files?: Express.Multer.File[]
 ) => {
   const blog = await prisma.blog.findFirst({
     where: {
@@ -278,17 +286,39 @@ const updateBlog = async (
     );
   }
 
-  // Handle new image upload if present
   let featuredImage = undefined;
-  if (file) {
-    // Delete old image if exists
-    if (blog.featuredImage) {
-      const oldFilename = extractFilenameFromUrl(blog.featuredImage);
-      await deleteImage(oldFilename);
+  let imageUrls: string[] = [];
+
+  if (files && files.length > 0) {
+    // Delete old images if they exist
+    if (blog.images && blog.images.length > 0) {
+      const deletePromises = blog.images.map((image) => {
+        const publicId = image.split('/').pop()?.split('.')[0];
+        if (publicId) {
+          return FileUploadHelper.deleteFromCloudinary(publicId);
+        }
+        return Promise.resolve(true);
+      });
+
+      await Promise.all(deletePromises);
     }
-    // Upload and optimize new image
-    const optimizedImage = await optimizeImage(file.buffer);
-    featuredImage = optimizedImage.url;
+    // Also delete the old featured image if it's not in the images array
+    else if (blog.featuredImage) {
+      const publicId = blog.featuredImage.split('/').pop()?.split('.')[0];
+      if (publicId) {
+        await FileUploadHelper.deleteFromCloudinary(publicId);
+      }
+    }
+
+    // Upload new images
+    const uploadPromises = files.map((file) =>
+      FileUploadHelper.uploadToCloudinary(file)
+    );
+
+    const uploadResults = await Promise.all(uploadPromises);
+    imageUrls = uploadResults.map((result) => result.secure_url);
+
+    featuredImage = imageUrls[0];
   }
 
   // Update slug if title is changed
@@ -299,7 +329,7 @@ const updateBlog = async (
       strict: true,
     });
     // Check if new slug already exists
-    const existingBlog = await prisma.blog.findUnique({
+    const existingBlog = await prisma.blog.findFirst({
       where: {
         slug: newSlug,
         NOT: {
@@ -316,15 +346,21 @@ const updateBlog = async (
     }
   }
 
+  const updateData: any = {
+    ...payload,
+    slug: newSlug,
+  };
+
+  if (files && files.length > 0) {
+    updateData.featuredImage = featuredImage;
+    updateData.images = imageUrls;
+  }
+
   const result = await prisma.blog.update({
     where: {
-      slug: idOrSlug,
+      id: blog.id,
     },
-    data: {
-      ...payload,
-      slug: newSlug,
-      featuredImage: featuredImage || undefined,
-    },
+    data: updateData,
     include: {
       user: {
         select: {

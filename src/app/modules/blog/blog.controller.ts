@@ -9,7 +9,7 @@ const createBlog = catchAsync(async (req: Request, res: Response) => {
   const result = await BlogService.createBlog(
     req.user?.userId,
     req.body,
-    req.file
+    req.files as Express.Multer.File[]
   );
 
   sendResponse(res, {
@@ -70,7 +70,7 @@ const updateBlog = catchAsync(async (req: Request, res: Response) => {
     req.params.idOrSlug,
     req.user,
     req.body,
-    req.file
+    req.files as Express.Multer.File[]
   );
 
   sendResponse(res, {
