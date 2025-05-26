@@ -19,6 +19,7 @@ const createProject = async (
 ): Promise<Project> => {
   let imageUrl: string | undefined;
   let imageUrls: string[] = [];
+  let technologiesArray: string[] = [];
 
   if (files && files.length > 0) {
     const uploadPromises = files.map((file) =>
@@ -32,9 +33,36 @@ const createProject = async (
     imageUrl = imageUrls[0];
   }
 
+  if (payload.technologies && payload.technologies.length > 0) {
+    technologiesArray =
+      typeof payload.technologies === 'string'
+        ? JSON.parse(payload.technologies)
+        : payload.technologies;
+
+    const techPromises = technologiesArray.map(async (tech: string) => {
+      const existingTech = await prisma.technology.findFirst({
+        where: {
+          OR: [{ name: tech }, { value: tech }],
+        },
+      });
+
+      if (!existingTech) {
+        await prisma.technology.create({
+          data: {
+            name: tech,
+            value: tech.toLowerCase().replace(/\s+/g, '-'),
+          },
+        });
+      }
+    });
+
+    await Promise.all(techPromises);
+  }
+
   const result = await prisma.project.create({
     data: {
       ...payload,
+      technologies: technologiesArray,
       images: imageUrls,
       userId,
     },
@@ -110,7 +138,7 @@ const getSingleProject = async (id: string): Promise<Project> => {
 const updateProject = async (
   id: string,
   userId: string,
-  payload: Partial<Project>,
+  payload: Partial<Project> & { imagesToRemove?: string },
   files?: Express.Multer.File[]
 ): Promise<Project> => {
   const project = await prisma.project.findUnique({
@@ -125,36 +153,74 @@ const updateProject = async (
     throw new ApiError(httpStatus.FORBIDDEN, 'You cannot update this project');
   }
 
-  let imageUrls: string[] = [];
+  let newImageUrls: string[] = [];
+  let imagesToKeep: string[] = [];
+  let imagesToRemove: string[] = [];
 
-  if (files && files.length > 0) {
-    if (project.images && project.images.length > 0) {
-      const deletePromises = project.images.map((image) => {
-        const publicId = image.split('/').pop()?.split('.')[0];
-        if (publicId) {
-          return FileUploadHelper.deleteFromCloudinary(publicId);
-        }
-        return Promise.resolve(true);
-      });
-
-      await Promise.all(deletePromises);
+  // Parse images to remove if provided
+  if (payload.imagesToRemove && typeof payload.imagesToRemove === 'string') {
+    try {
+      imagesToRemove = JSON.parse(payload.imagesToRemove);
+    } catch (error) {
+      console.error('Error parsing imagesToRemove:', error);
     }
+  }
 
-    // Upload new images
+  // Determine which existing images to keep
+  if (project.images && project.images.length > 0) {
+    imagesToKeep = project.images.filter(
+      (img) => !imagesToRemove.includes(img)
+    );
+  }
+
+  // Delete images from Cloudinary if needed
+  if (imagesToRemove.length > 0) {
+    const deletePromises = imagesToRemove.map((image) => {
+      const publicId = image.split('/').pop()?.split('.')[0];
+      if (publicId) {
+        return FileUploadHelper.deleteFromCloudinary(publicId);
+      }
+      return Promise.resolve(true);
+    });
+
+    await Promise.all(deletePromises);
+  }
+
+  // Upload new images if provided
+  if (files && files.length > 0) {
     const uploadPromises = files.map((file) =>
       FileUploadHelper.uploadToCloudinary(file)
     );
 
     const uploadResults = await Promise.all(uploadPromises);
-    imageUrls = uploadResults.map((result) => result.secure_url);
+    newImageUrls = uploadResults.map((result) => result.secure_url);
   }
 
-  const updateData: any = {
-    ...payload,
-  };
+  const updateData: any = { ...payload };
 
-  if (files && files.length > 0) {
-    updateData.images = imageUrls;
+  // Parse technologies if it's a string
+  if (typeof updateData.technologies === 'string') {
+    try {
+      updateData.technologies = JSON.parse(updateData.technologies);
+    } catch (error) {
+      console.error('Error parsing technologies:', error);
+      // If parsing fails, remove the field to avoid errors
+      delete updateData.technologies;
+    }
+  }
+
+  // Remove id and imagesToRemove from updateData if they exist
+  if (updateData.id) {
+    delete updateData.id;
+  }
+
+  if (updateData.imagesToRemove) {
+    delete updateData.imagesToRemove;
+  }
+
+  // Combine kept images with new images
+  if ((files && files.length > 0) || imagesToRemove.length > 0) {
+    updateData.images = [...imagesToKeep, ...newImageUrls];
   }
 
   const result = await prisma.project.update({

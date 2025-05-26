@@ -22,6 +22,7 @@ const updateProjectZodSchema = z.object({
     githubUrl: z.string().url().optional(),
     technologies: z.array(z.string()).optional(),
     status: z.enum(['ONGOING', 'COMPLETED']).optional(),
+    imagesToRemove: z.string().optional(),
   }),
 });
 

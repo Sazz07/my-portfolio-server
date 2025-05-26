@@ -8,6 +8,7 @@ import { BlogRoutes } from '../modules/blog/blog.routes';
 import { AboutRoutes } from '../modules/about/about.routes';
 import { SkillRoutes } from '../modules/skill/skill.routes';
 import { ContactRoutes } from '../modules/contact/contact.routes';
+import { TechnologyRoutes } from '../modules/technology/technology.routes';
 
 const router = express.Router();
 
@@ -47,6 +48,10 @@ const moduleRoutes = [
   {
     path: '/about',
     route: AboutRoutes,
+  },
+  {
+    path: '/technologies',
+    route: TechnologyRoutes,
   },
 ];
 

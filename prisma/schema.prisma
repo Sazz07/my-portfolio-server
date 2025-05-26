@@ -220,3 +220,14 @@ model About {
 
   @@map("about")
 }
+
+model Technology {
+  id    String @id @default(uuid())
+  name  String @unique
+  value String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("technologies")
+}
