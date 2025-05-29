@@ -373,7 +373,6 @@ const deleteBlog = async (idOrSlug: string, authUser: JwtPayload) => {
     );
   }
 
-  // Delete associated image if exists
   if (blog.featuredImage) {
     const filename = extractFilenameFromUrl(blog.featuredImage);
     await deleteImage(filename);
@@ -381,7 +380,7 @@ const deleteBlog = async (idOrSlug: string, authUser: JwtPayload) => {
 
   const result = await prisma.blog.delete({
     where: {
-      slug: idOrSlug,
+      id: blog.id,
     },
   });
 
