@@ -12,11 +12,7 @@ import { JwtPayload } from 'jsonwebtoken';
 import { IPaginationOptions } from '../../../interfaces/common';
 import { paginationHelpers } from '../../../helpers/paginationHelper';
 import { BlogStatus } from '@prisma/client';
-import {
-  optimizeImage,
-  deleteImage,
-  extractFilenameFromUrl,
-} from '../../../utils/image';
+import { deleteImage, extractFilenameFromUrl } from '../../../utils/image';
 import { BlogHelper } from './blog.helper';
 import { FileUploadHelper } from '../../../helpers/fileUploadHelper';
 
@@ -56,9 +52,13 @@ const createBlog = async (
     );
   }
 
+  const tags =
+    typeof payload.tags === 'string' ? JSON.parse(payload.tags) : payload.tags;
+
   const blog = await prisma.blog.create({
     data: {
       ...payload,
+      tags,
       slug,
       featuredImage,
       images: imageUrls,
@@ -266,7 +266,7 @@ const getSingleBlog = async (idOrSlug: string) => {
 const updateBlog = async (
   idOrSlug: string,
   authUser: JwtPayload,
-  payload: IUpdateBlog,
+  payload: IUpdateBlog & { imagesToRemove: string[] },
   files?: Express.Multer.File[]
 ) => {
   const blog = await prisma.blog.findFirst({
@@ -279,113 +279,80 @@ const updateBlog = async (
     throw new ApiError(httpStatus.NOT_FOUND, 'Blog not found');
   }
 
-  if (blog.userId !== authUser.userId) {
+  // Check if user is authorized to update this blog
+  if (blog.userId !== authUser.userId && authUser.role !== 'ADMIN') {
     throw new ApiError(
       httpStatus.FORBIDDEN,
       'You are not authorized to update this blog'
     );
   }
 
-  let featuredImage = undefined;
-  let imageUrls: string[] = [];
-
+  // Handle image uploads if files are provided
+  let newImageUrls: string[] = [];
   if (files && files.length > 0) {
-    // Delete old images if they exist
-    if (blog.images && blog.images.length > 0) {
-      const deletePromises = blog.images.map((image) => {
-        const publicId = image.split('/').pop()?.split('.')[0];
-        if (publicId) {
-          return FileUploadHelper.deleteFromCloudinary(publicId);
-        }
-        return Promise.resolve(true);
-      });
-
-      await Promise.all(deletePromises);
-    }
-    // Also delete the old featured image if it's not in the images array
-    else if (blog.featuredImage) {
-      const publicId = blog.featuredImage.split('/').pop()?.split('.')[0];
-      if (publicId) {
-        await FileUploadHelper.deleteFromCloudinary(publicId);
-      }
-    }
-
-    // Upload new images
     const uploadPromises = files.map((file) =>
       FileUploadHelper.uploadToCloudinary(file)
     );
 
     const uploadResults = await Promise.all(uploadPromises);
-    imageUrls = uploadResults.map((result) => result.secure_url);
-
-    featuredImage = imageUrls[0];
+    newImageUrls = uploadResults.map((result) => result.secure_url);
   }
 
-  // Update slug if title is changed
-  let newSlug = undefined;
-  if (payload.title) {
-    newSlug = slugify(payload.title, {
-      lower: true,
-      strict: true,
-    });
-    // Check if new slug already exists
-    const existingBlog = await prisma.blog.findFirst({
-      where: {
-        slug: newSlug,
-        NOT: {
-          id: blog.id,
-        },
-      },
-    });
+  let imagesToRemove: string[] = [];
+  if (payload.imagesToRemove) {
+    imagesToRemove = Array.isArray(payload.imagesToRemove)
+      ? payload.imagesToRemove
+      : JSON.parse(payload.imagesToRemove as string);
+  }
 
-    if (existingBlog) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        'Blog with this title already exists'
-      );
+  // Get current images and filter out ones to remove
+  let currentImages = blog.images || [];
+  if (imagesToRemove.length > 0) {
+    // Delete images from Cloudinary
+    for (const imageUrl of imagesToRemove) {
+      try {
+        const publicId = extractFilenameFromUrl(imageUrl);
+        if (publicId) {
+          await deleteImage(publicId);
+        }
+      } catch (error) {
+        console.error('Error deleting image:', error);
+      }
     }
+
+    // Filter out removed images
+    currentImages = currentImages.filter(
+      (img) => !imagesToRemove.includes(img)
+    );
   }
 
-  const updateData: any = {
-    ...payload,
-    slug: newSlug,
-  };
+  // Combine existing images with new ones
+  const updatedImages = [...currentImages, ...newImageUrls];
 
-  if (files && files.length > 0) {
-    updateData.featuredImage = featuredImage;
-    updateData.images = imageUrls;
+  // Update featuredImage if needed
+  let featuredImage = blog.featuredImage;
+  if (featuredImage && imagesToRemove.includes(featuredImage)) {
+    featuredImage = updatedImages.length > 0 ? updatedImages[0] : null;
+  } else if (newImageUrls.length > 0 && !featuredImage) {
+    featuredImage = newImageUrls[0];
   }
 
-  const result = await prisma.blog.update({
-    where: {
-      id: blog.id,
-    },
-    data: updateData,
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          profile: {
-            select: {
-              firstName: true,
-              lastName: true,
-              profileImage: true,
-            },
-          },
-        },
-      },
-      category: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-        },
-      },
+  // Parse tags if they come as stringified JSON
+  const tags =
+    typeof payload.tags === 'string' ? JSON.parse(payload.tags) : payload.tags;
+
+  // Update the blog
+  const updatedBlog = await prisma.blog.update({
+    where: { id: blog.id },
+    data: {
+      ...payload,
+      tags,
+      images: updatedImages,
+      featuredImage,
     },
   });
 
-  return result;
+  return updatedBlog;
 };
 
 const deleteBlog = async (idOrSlug: string, authUser: JwtPayload) => {
