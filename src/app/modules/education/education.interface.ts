@@ -1,5 +1,5 @@
 export type ICreateEducation = {
-  school: string;
+  institution: string;
   degree: string;
   fieldOfStudy: string;
   location?: string;
@@ -15,7 +15,7 @@ export type IUpdateEducation = Partial<ICreateEducation>;
 
 export type IEducationResponse = {
   id: string;
-  school: string;
+  institution: string;
   degree: string;
   fieldOfStudy: string;
   location?: string;

@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 const createEducationZodSchema = z.object({
   body: z.object({
-    school: z.string({
-      required_error: 'School is required',
+    institution: z.string({
+      required_error: 'Institution is required',
     }),
     degree: z.string({
       required_error: 'Degree is required',
@@ -25,7 +25,7 @@ const createEducationZodSchema = z.object({
 
 const updateEducationZodSchema = z.object({
   body: z.object({
-    school: z.string().optional(),
+    institution: z.string().optional(),
     degree: z.string().optional(),
     fieldOfStudy: z.string().optional(),
     location: z.string().optional(),
