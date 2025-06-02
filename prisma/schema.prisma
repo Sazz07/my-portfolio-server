@@ -212,6 +212,8 @@ model About {
   profileId       String   @unique
   metaTitle       String?
   metaDescription String?  @db.Text
+  image           String?
+  quotes          Quote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -219,6 +221,21 @@ model About {
   profile Profile @relation(fields: [profileId], references: [id])
 
   @@map("about")
+}
+
+model Quote {
+  id      String  @id @default(uuid())
+  text    String  @db.Text
+  author  String
+  source  String?
+  aboutId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  about About @relation(fields: [aboutId], references: [id], onDelete: Cascade)
+
+  @@map("quotes")
 }
 
 model Technology {

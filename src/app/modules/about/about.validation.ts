@@ -19,6 +19,7 @@ const createAboutZodSchema = z.object({
     }),
     metaTitle: z.string().optional(),
     metaDescription: z.string().optional(),
+    image: z.string().optional(),
   }),
 });
 
@@ -31,10 +32,34 @@ const updateAboutZodSchema = z.object({
     achievements: z.array(z.string()).optional(),
     metaTitle: z.string().optional(),
     metaDescription: z.string().optional(),
+    image: z.string().optional(), // Added field for image URL
+  }),
+});
+
+// Quote validation schemas
+const createQuoteZodSchema = z.object({
+  body: z.object({
+    text: z.string({
+      required_error: 'Quote text is required',
+    }),
+    author: z.string({
+      required_error: 'Author is required',
+    }),
+    source: z.string().optional(),
+  }),
+});
+
+const updateQuoteZodSchema = z.object({
+  body: z.object({
+    text: z.string().optional(),
+    author: z.string().optional(),
+    source: z.string().optional(),
   }),
 });
 
 export const AboutValidation = {
   createAboutZodSchema,
   updateAboutZodSchema,
+  createQuoteZodSchema,
+  updateQuoteZodSchema,
 };
