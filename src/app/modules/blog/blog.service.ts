@@ -76,9 +76,11 @@ const getAllBlogs = async (
   const { page, limit, skip } = paginationHelpers.calculatePagination(options);
   const { status, categoryId, searchTerm } = filters;
 
-  const whereConditions: any = {
-    status: status || BlogStatus.PUBLISHED,
-  };
+  const whereConditions: any = {};
+
+  if (status) {
+    whereConditions.status = status;
+  }
 
   if (categoryId) {
     whereConditions.categoryId = categoryId;
@@ -266,7 +268,7 @@ const getSingleBlog = async (idOrSlug: string) => {
 const updateBlog = async (
   idOrSlug: string,
   authUser: JwtPayload,
-  payload: IUpdateBlog & { imagesToRemove: string[] },
+  payload: IUpdateBlog & { imagesToRemove?: string[] },
   files?: Express.Multer.File[]
 ) => {
   const blog = await prisma.blog.findFirst({
@@ -287,7 +289,6 @@ const updateBlog = async (
     );
   }
 
-  // Handle image uploads if files are provided
   let newImageUrls: string[] = [];
   if (files && files.length > 0) {
     const uploadPromises = files.map((file) =>
@@ -305,10 +306,8 @@ const updateBlog = async (
       : JSON.parse(payload.imagesToRemove as string);
   }
 
-  // Get current images and filter out ones to remove
   let currentImages = blog.images || [];
   if (imagesToRemove.length > 0) {
-    // Delete images from Cloudinary
     for (const imageUrl of imagesToRemove) {
       try {
         const publicId = extractFilenameFromUrl(imageUrl);
@@ -329,7 +328,6 @@ const updateBlog = async (
   // Combine existing images with new ones
   const updatedImages = [...currentImages, ...newImageUrls];
 
-  // Update featuredImage if needed
   let featuredImage = blog.featuredImage;
   if (featuredImage && imagesToRemove.includes(featuredImage)) {
     featuredImage = updatedImages.length > 0 ? updatedImages[0] : null;
@@ -337,15 +335,18 @@ const updateBlog = async (
     featuredImage = newImageUrls[0];
   }
 
-  // Parse tags if they come as stringified JSON
   const tags =
     typeof payload.tags === 'string' ? JSON.parse(payload.tags) : payload.tags;
 
-  // Update the blog
+  const updateData = { ...payload };
+  if (updateData.imagesToRemove) {
+    delete updateData.imagesToRemove;
+  }
+
   const updatedBlog = await prisma.blog.update({
     where: { id: blog.id },
     data: {
-      ...payload,
+      ...updateData,
       tags,
       images: updatedImages,
       featuredImage,
