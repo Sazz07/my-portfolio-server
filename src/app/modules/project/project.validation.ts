@@ -23,6 +23,7 @@ const updateProjectZodSchema = z.object({
     technologies: z.array(z.string()).optional(),
     status: z.enum(['ONGOING', 'COMPLETED']).optional(),
     imagesToRemove: z.string().optional(),
+    featuredImage: z.string().optional(),
   }),
 });
 

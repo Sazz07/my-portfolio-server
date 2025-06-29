@@ -60,6 +60,7 @@ const updateBlogZodSchema: BlogSchema = z.object({
     metaTitle: z.string().optional(),
     metaDescription: z.string().optional(),
     imagesToRemove: z.string().optional(),
+    featuredImage: z.string().optional(),
   }),
 });
 

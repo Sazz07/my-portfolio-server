@@ -74,15 +74,16 @@ model Profile {
 }
 
 model Project {
-  id           String        @id @default(uuid())
-  title        String
-  description  String        @db.Text
-  images       String[]
-  liveUrl      String?
-  githubUrl    String?
-  status       ProjectStatus @default(ONGOING)
-  technologies String[]
-  userId       String
+  id            String        @id @default(uuid())
+  title         String
+  description   String        @db.Text
+  featuredImage String?
+  images        String[]
+  liveUrl       String?
+  githubUrl     String?
+  status        ProjectStatus @default(ONGOING)
+  technologies  String[]
+  userId        String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

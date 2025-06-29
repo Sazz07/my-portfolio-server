@@ -30,6 +30,7 @@ const createProject = async (
 
     imageUrls = uploadResults.map((result) => result.secure_url);
 
+    // Set the first image as featured image by default
     imageUrl = imageUrls[0];
   }
 
@@ -63,6 +64,7 @@ const createProject = async (
     data: {
       ...payload,
       technologies: technologiesArray,
+      featuredImage: imageUrl,
       images: imageUrls,
       userId,
     },
@@ -219,9 +221,34 @@ const updateProject = async (
   }
 
   // Combine kept images with new images
+  const allImages = [...imagesToKeep, ...newImageUrls];
   if ((files && files.length > 0) || imagesToRemove.length > 0) {
-    updateData.images = [...imagesToKeep, ...newImageUrls];
+    updateData.images = allImages;
   }
+
+  // Handle featuredImage logic
+  let featuredImage = updateData.featuredImage || project.featuredImage;
+
+  // If featuredImage is being removed or doesn't exist in remaining images, reset it
+  if (featuredImage && !allImages.includes(featuredImage)) {
+    featuredImage = allImages.length > 0 ? allImages[0] : null;
+  }
+
+  // If no featuredImage is set but we have images, set the first one as featured
+  if (!featuredImage && allImages.length > 0) {
+    featuredImage = allImages[0];
+  }
+
+  // If we're removing the featured image and have other images, set the first remaining as featured
+  if (
+    project.featuredImage &&
+    imagesToRemove.includes(project.featuredImage) &&
+    allImages.length > 0
+  ) {
+    featuredImage = allImages[0];
+  }
+
+  updateData.featuredImage = featuredImage;
 
   const result = await prisma.project.update({
     where: { id },

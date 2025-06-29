@@ -326,13 +326,28 @@ const updateBlog = async (
   }
 
   // Combine existing images with new ones
-  const updatedImages = [...currentImages, ...newImageUrls];
+  const allImages = [...currentImages, ...newImageUrls];
 
-  let featuredImage = blog.featuredImage;
-  if (featuredImage && imagesToRemove.includes(featuredImage)) {
-    featuredImage = updatedImages.length > 0 ? updatedImages[0] : null;
-  } else if (newImageUrls.length > 0 && !featuredImage) {
-    featuredImage = newImageUrls[0];
+  // Handle featuredImage logic
+  let featuredImage = payload.featuredImage || blog.featuredImage;
+
+  // If featuredImage is being removed or doesn't exist in remaining images, reset it
+  if (featuredImage && !allImages.includes(featuredImage)) {
+    featuredImage = allImages.length > 0 ? allImages[0] : null;
+  }
+
+  // If no featuredImage is set but we have images, set the first one as featured
+  if (!featuredImage && allImages.length > 0) {
+    featuredImage = allImages[0];
+  }
+
+  // If we're removing the featured image and have other images, set the first remaining as featured
+  if (
+    blog.featuredImage &&
+    imagesToRemove.includes(blog.featuredImage) &&
+    allImages.length > 0
+  ) {
+    featuredImage = allImages[0];
   }
 
   const tags =
@@ -348,7 +363,7 @@ const updateBlog = async (
     data: {
       ...updateData,
       tags,
-      images: updatedImages,
+      images: allImages,
       featuredImage,
     },
   });
