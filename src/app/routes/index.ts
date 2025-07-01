@@ -9,6 +9,7 @@ import { AboutRoutes } from '../modules/about/about.routes';
 import { SkillRoutes } from '../modules/skill/skill.routes';
 import { ContactRoutes } from '../modules/contact/contact.routes';
 import { TechnologyRoutes } from '../modules/technology/technology.routes';
+import { SkillCategoryRoutes } from '../modules/skillCategory/skillCategory.routes';
 
 const router = express.Router();
 
@@ -52,6 +53,10 @@ const moduleRoutes = [
   {
     path: '/technologies',
     route: TechnologyRoutes,
+  },
+  {
+    path: '/skill-categories',
+    route: SkillCategoryRoutes,
   },
 ];
 

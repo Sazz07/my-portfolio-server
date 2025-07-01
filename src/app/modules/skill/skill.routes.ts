@@ -9,6 +9,7 @@ const router = express.Router();
 
 // Public routes
 router.get('/', SkillController.getAllSkills);
+router.get('/categories/used', SkillController.getUsedSkillCategories);
 router.get('/:id', SkillController.getSingleSkill);
 router.get('/profile/:profileId', SkillController.getSkillsByProfile);
 

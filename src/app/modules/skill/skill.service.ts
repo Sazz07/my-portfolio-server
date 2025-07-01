@@ -3,6 +3,7 @@ import prisma from '../../../shared/prisma';
 import { ICreateSkill, IUpdateSkill } from './skill.interface';
 import ApiError from '../../../errors/ApiError';
 import { Skill } from '@prisma/client';
+import { queryBuilder } from '../../../shared/queryBuilder';
 
 const createSkill = async (
   userId: string,
@@ -23,16 +24,21 @@ const createSkill = async (
       ...payload,
       profileId: profile.id,
     },
+    include: { category: true },
   });
 
   return result;
 };
 
-const getAllSkills = async () => {
+const getAllSkills = async (filter: { categoryId?: string }) => {
+  const conditions = queryBuilder.buildFilterConditions(filter);
+  const where = queryBuilder.buildWhereConditions(conditions);
   const result = await prisma.skill.findMany({
+    where,
     orderBy: {
       proficiency: 'desc',
     },
+    include: { category: true },
   });
 
   return result;
@@ -86,6 +92,7 @@ const updateSkill = async (
   const result = await prisma.skill.update({
     where: { id },
     data: payload,
+    include: { category: true },
   });
 
   return result;
@@ -112,6 +119,18 @@ const deleteSkill = async (id: string, userId: string): Promise<void> => {
   });
 };
 
+const getUsedSkillCategories = async () => {
+  const categories = await prisma.skillCategory.findMany({
+    where: {
+      skills: {
+        some: {},
+      },
+    },
+    orderBy: { name: 'asc' },
+  });
+  return categories;
+};
+
 export const SkillService = {
   createSkill,
   getAllSkills,
@@ -119,4 +138,5 @@ export const SkillService = {
   getSingleSkill,
   updateSkill,
   deleteSkill,
+  getUsedSkillCategories,
 };
