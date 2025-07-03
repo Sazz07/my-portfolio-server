@@ -1,9 +1,9 @@
 export type ICreateAbout = {
-  introduction: string;
-  overview: string;
-  servicesOffered: string[];
-  toolsAndTech: string[];
-  achievements: string[];
+  journey: string;
+  values: string;
+  approach: string;
+  beyondCoding: string;
+  lookingForward: string;
   metaTitle?: string;
   metaDescription?: string;
   image?: string;
@@ -13,11 +13,11 @@ export type IUpdateAbout = Partial<ICreateAbout>;
 
 export type IAboutResponse = {
   id: string;
-  introduction: string;
-  overview: string;
-  servicesOffered: string[];
-  toolsAndTech: string[];
-  achievements: string[];
+  journey: string;
+  values: string;
+  approach: string;
+  beyondCoding: string;
+  lookingForward: string;
   metaTitle?: string;
   metaDescription?: string;
   image?: string;

@@ -42,22 +42,25 @@ const updateProfile = async (
 
   // Handle image upload if file is provided
   let profileImageUrl = undefined;
-  
+
   if (file) {
     const uploadedImage = await FileUploadHelper.uploadToCloudinary(file);
-    
+
     if (!uploadedImage) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Image upload failed');
     }
-    
+
     // Delete old image if exists
     if (user.profile?.profileImage) {
-      const publicId = user.profile.profileImage.split('/').pop()?.split('.')[0];
+      const publicId = user.profile.profileImage
+        .split('/')
+        .pop()
+        ?.split('.')[0];
       if (publicId) {
         await FileUploadHelper.deleteFromCloudinary(publicId);
       }
     }
-    
+
     profileImageUrl = uploadedImage.secure_url;
   }
 
@@ -73,7 +76,32 @@ const updateProfile = async (
   return result;
 };
 
+const getPublicProfile = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      profile: {
+        include: {
+          skills: { include: { category: true } },
+          experiences: true,
+          educations: true,
+          about: { include: { quotes: true } },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  return user;
+};
+
 export const UserService = {
   getProfile,
   updateProfile,
+  getPublicProfile,
 };

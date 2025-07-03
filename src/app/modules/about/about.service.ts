@@ -50,8 +50,22 @@ const createOrUpdateAbout = async (
         profileId: profile.id,
       },
       data: {
-        ...payload,
-        image: imageUrl,
+        ...(payload.journey !== undefined && { journey: payload.journey }),
+        ...(payload.values !== undefined && { values: payload.values }),
+        ...(payload.approach !== undefined && { approach: payload.approach }),
+        ...(payload.beyondCoding !== undefined && {
+          beyondCoding: payload.beyondCoding,
+        }),
+        ...(payload.lookingForward !== undefined && {
+          lookingForward: payload.lookingForward,
+        }),
+        ...(payload.metaTitle !== undefined && {
+          metaTitle: payload.metaTitle,
+        }),
+        ...(payload.metaDescription !== undefined && {
+          metaDescription: payload.metaDescription,
+        }),
+        ...(imageUrl && { image: imageUrl }),
       },
       include: {
         quotes: true,
@@ -62,7 +76,13 @@ const createOrUpdateAbout = async (
 
   const result = await prisma.about.create({
     data: {
-      ...payload,
+      journey: payload.journey,
+      values: payload.values,
+      approach: payload.approach,
+      beyondCoding: payload.beyondCoding,
+      lookingForward: payload.lookingForward,
+      metaTitle: payload.metaTitle,
+      metaDescription: payload.metaDescription,
       image: imageUrl,
       profileId: profile.id,
     },
@@ -135,7 +155,19 @@ const updateAbout = async (
       profileId: profile.id,
     },
     data: {
-      ...payload,
+      ...(payload.journey !== undefined && { journey: payload.journey }),
+      ...(payload.values !== undefined && { values: payload.values }),
+      ...(payload.approach !== undefined && { approach: payload.approach }),
+      ...(payload.beyondCoding !== undefined && {
+        beyondCoding: payload.beyondCoding,
+      }),
+      ...(payload.lookingForward !== undefined && {
+        lookingForward: payload.lookingForward,
+      }),
+      ...(payload.metaTitle !== undefined && { metaTitle: payload.metaTitle }),
+      ...(payload.metaDescription !== undefined && {
+        metaDescription: payload.metaDescription,
+      }),
       ...(imageUrl && { image: imageUrl }),
     },
     include: {
@@ -327,6 +359,19 @@ const deleteQuote = async (authUserId: string, quoteId: string) => {
   return true;
 };
 
+const getAboutMe = async (userId: string) => {
+  if (!userId) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Unauthorized');
+  }
+  const profile = await prisma.profile.findUnique({
+    where: { userId },
+  });
+  if (!profile) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Profile not found');
+  }
+  return getAboutByProfile(profile.id);
+};
+
 export const AboutService = {
   createOrUpdateAbout,
   getAboutByProfile,
@@ -336,4 +381,5 @@ export const AboutService = {
   getRandomQuote,
   updateQuote,
   deleteQuote,
+  getAboutMe,
 };

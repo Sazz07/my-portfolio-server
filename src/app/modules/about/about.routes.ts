@@ -64,4 +64,10 @@ router.delete(
   AboutController.deleteQuote
 );
 
+router.get(
+  '/me',
+  auth(UserRole.USER, UserRole.ADMIN),
+  AboutController.getAboutMe
+);
+
 export const AboutRoutes = router;

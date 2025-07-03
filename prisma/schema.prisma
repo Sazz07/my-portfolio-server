@@ -53,6 +53,8 @@ model Profile {
   firstName    String
   lastName     String?
   bio          String? @db.Text
+  phoneNumber  String?
+  address      String?
   profileImage String?
   coverImage   String?
   resumeUrl    String?
@@ -67,7 +69,6 @@ model Profile {
   experiences Experience[]
   educations  Education[]
   user        User         @relation(fields: [userId], references: [id])
-  contacts    Contact[]
   about       About?
 
   @@map("profiles")
@@ -163,18 +164,15 @@ model Skill {
   @@map("skills")
 }
 
-model Contact {
-  id        String @id @default(uuid())
-  name      String
-  email     String
-  subject   String
-  message   String @db.Text
-  profileId String
+model ContactMe {
+  id      String @id @default(uuid())
+  name    String
+  email   String
+  subject String
+  message String @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  profile Profile @relation(fields: [profileId], references: [id])
 
   @@map("contacts")
 }
@@ -219,19 +217,18 @@ model Blog {
 
 model About {
   id              String   @id @default(uuid())
-  introduction    String   @db.Text
-  overview        String   @db.Text
-  servicesOffered String[]
-  toolsAndTech    String[]
-  achievements    String[]
   profileId       String   @unique
+  journey         String   @db.Text
+  values          String   @db.Text
+  approach        String   @db.Text
+  beyondCoding    String   @db.Text
+  lookingForward  String   @db.Text
+  image           String?
   metaTitle       String?
   metaDescription String?  @db.Text
-  image           String?
   quotes          Quote[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   profile Profile @relation(fields: [profileId], references: [id])
 

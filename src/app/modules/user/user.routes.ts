@@ -7,6 +7,9 @@ import { createFileUploadMiddleware } from '../../middlewares/fileUploadMiddlewa
 
 const router = express.Router();
 
+// Public route for fetching a user's public profile
+router.get('/public/:userId', UserController.getPublicProfile);
+
 router.get(
   '/profile',
   auth(UserRole.USER, UserRole.ADMIN),

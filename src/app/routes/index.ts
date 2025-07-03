@@ -22,6 +22,7 @@ const moduleRoutes = [
     path: '/users',
     route: UserRoutes,
   },
+  
   {
     path: '/projects',
     route: ProjectRoutes,

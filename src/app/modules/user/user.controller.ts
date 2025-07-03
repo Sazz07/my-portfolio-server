@@ -16,11 +16,10 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
-  const files = req.files as Express.Multer.File[];
-  const file = files && files.length > 0 ? files[0] : undefined;
-  
+  const file = req.file as Express.Multer.File | undefined;
+
   const result = await UserService.updateProfile(
-    req.user.userId, 
+    req.user.userId,
     req.body,
     file
   );
@@ -33,7 +32,20 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getPublicProfile = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const result = await UserService.getPublicProfile(userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Public profile retrieved successfully',
+    data: result,
+  });
+});
+
 export const UserController = {
   getProfile,
   updateProfile,
+  getPublicProfile,
 };

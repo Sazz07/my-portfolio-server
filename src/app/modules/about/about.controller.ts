@@ -107,6 +107,17 @@ const deleteQuote = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAboutMe = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+  const about = await AboutService.getAboutMe(userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'About section retrieved successfully',
+    data: about,
+  });
+});
+
 export const AboutController = {
   createOrUpdateAbout,
   getAboutByProfile,
@@ -116,4 +127,5 @@ export const AboutController = {
   getRandomQuote,
   updateQuote,
   deleteQuote,
+  getAboutMe,
 };
