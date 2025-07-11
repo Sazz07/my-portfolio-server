@@ -1,8 +1,9 @@
-export type ICreateContact = {
+export interface IContactMe {
+  id: string;
   name: string;
   email: string;
   subject: string;
   message: string;
-};
-
-export type IUpdateContact = Partial<ICreateContact>;
+  createdAt: Date;
+  updatedAt: Date;
+}

@@ -18,6 +18,11 @@ export default {
     refresh_token_expires_in: process.env.JWT_REFRESH_TOKEN_EXPIRES_IN,
   },
 
+  emailSender: {
+    email: process.env.EMAIL,
+    app_pass: process.env.APP_PASS,
+  },
+
   cloudinary: {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,

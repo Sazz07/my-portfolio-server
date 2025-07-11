@@ -2,33 +2,13 @@ import { z } from 'zod';
 
 const createContactZodSchema = z.object({
   body: z.object({
-    name: z.string({
-      required_error: 'Name is required',
-    }),
-    email: z
-      .string({
-        required_error: 'Email is required',
-      })
-      .email(),
-    subject: z.string({
-      required_error: 'Subject is required',
-    }),
-    message: z.string({
-      required_error: 'Message is required',
-    }),
-  }),
-});
-
-const updateContactZodSchema = z.object({
-  body: z.object({
-    name: z.string().optional(),
-    email: z.string().email().optional(),
-    subject: z.string().optional(),
-    message: z.string().optional(),
+    name: z.string().min(1, 'Name is required'),
+    email: z.string().email('Invalid email address'),
+    subject: z.string().min(1, 'Subject is required'),
+    message: z.string().min(10, 'Message must be at least 10 characters'),
   }),
 });
 
 export const ContactValidation = {
   createContactZodSchema,
-  updateContactZodSchema,
 };
