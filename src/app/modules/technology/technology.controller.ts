@@ -26,45 +26,48 @@ const getAllTechnologies = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getSingleTechnology = catchAsync(async (req: Request, res: Response) => {
-  const result = await TechnologyService.getSingleTechnology(req.params.id);
+const getTechnologiesByCategory = catchAsync(
+  async (req: Request, res: Response) => {
+    const { category } = req.params;
+    const result = await TechnologyService.getTechnologiesByCategory(category);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Technologies retrieved successfully',
+      data: result,
+    });
+  }
+);
+
+const getAllTechnologyCategories = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await TechnologyService.getAllTechnologyCategories();
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Technology categories retrieved successfully',
+      data: result,
+    });
+  }
+);
+
+const seedTechnologies = catchAsync(async (req: Request, res: Response) => {
+  const result = await TechnologyService.seedTechnologies();
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Technology retrieved successfully',
+    message: 'Technologies seeded successfully',
     data: result,
-  });
-});
-
-const updateTechnology = catchAsync(async (req: Request, res: Response) => {
-  const result = await TechnologyService.updateTechnology(
-    req.params.id,
-    req.body
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Technology updated successfully',
-    data: result,
-  });
-});
-
-const deleteTechnology = catchAsync(async (req: Request, res: Response) => {
-  await TechnologyService.deleteTechnology(req.params.id);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Technology deleted successfully',
   });
 });
 
 export const TechnologyController = {
   createTechnology,
   getAllTechnologies,
-  getSingleTechnology,
-  updateTechnology,
-  deleteTechnology,
+  getTechnologiesByCategory,
+  getAllTechnologyCategories,
+  seedTechnologies,
 };

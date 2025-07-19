@@ -30,6 +30,9 @@
     "generate-module": "ts-node src/scripts/generate-module.ts",
     "postinstall": "prisma generate"
   },
+  "prisma": {
+    "seed": "tsx src/shared/seed.ts"
+  },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",

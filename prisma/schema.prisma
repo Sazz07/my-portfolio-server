@@ -74,22 +74,36 @@ model Profile {
   @@map("profiles")
 }
 
+model ProjectCategory {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("project_categories")
+}
+
 model Project {
   id            String        @id @default(uuid())
   title         String
   description   String        @db.Text
+  features      String[]
+  techStack     Json? // { frontend: string[], backend: string[], devops: string[] }
   featuredImage String?
   images        String[]
   liveUrl       String?
   githubUrl     String?
   status        ProjectStatus @default(ONGOING)
-  technologies  String[]
+  categoryId    String
   userId        String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user     User            @relation(fields: [userId], references: [id])
+  category ProjectCategory @relation(fields: [categoryId], references: [id])
 
   @@map("projects")
 }
@@ -168,7 +182,6 @@ model ContactMe {
   id      String @id @default(uuid())
   name    String
   email   String
-  subject String
   message String @db.Text
 
   createdAt DateTime @default(now())
@@ -250,10 +263,23 @@ model Quote {
   @@map("quotes")
 }
 
+model TechnologyCategory {
+  id           String       @id @default(uuid())
+  name         String       @unique // "Frontend", "Backend", "DevOps"
+  value        String       @unique // "frontend", "backend", "devops"
+  technologies Technology[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("technology_categories")
+}
+
 model Technology {
-  id    String @id @default(uuid())
-  name  String @unique
-  value String @unique
+  id         String             @id @default(uuid())
+  name       String             @unique
+  value      String             @unique
+  categoryId String
+  category   TechnologyCategory @relation(fields: [categoryId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

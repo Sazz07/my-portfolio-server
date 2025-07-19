@@ -1,35 +1,15 @@
 import express from 'express';
 import { TechnologyController } from './technology.controller';
-import { TechnologyValidation } from './technology.validation';
-import validateRequest from '../../middlewares/validateRequest';
-import auth from '../../middlewares/auth';
-import { UserRole } from '@prisma/client';
 
 const router = express.Router();
 
-// Public routes
+router.post('/', TechnologyController.createTechnology);
 router.get('/', TechnologyController.getAllTechnologies);
-router.get('/:id', TechnologyController.getSingleTechnology);
-
-// Protected routes
-router.post(
-  '/',
-  auth(UserRole.USER, UserRole.ADMIN),
-  validateRequest(TechnologyValidation.createTechnologyZodSchema),
-  TechnologyController.createTechnology
+router.get('/categories', TechnologyController.getAllTechnologyCategories);
+router.get(
+  '/category/:category',
+  TechnologyController.getTechnologiesByCategory
 );
-
-router.patch(
-  '/:id',
-  auth(UserRole.USER, UserRole.ADMIN),
-  validateRequest(TechnologyValidation.updateTechnologyZodSchema),
-  TechnologyController.updateTechnology
-);
-
-router.delete(
-  '/:id',
-  auth(UserRole.USER, UserRole.ADMIN),
-  TechnologyController.deleteTechnology
-);
+router.post('/seed', TechnologyController.seedTechnologies);
 
 export const TechnologyRoutes = router;

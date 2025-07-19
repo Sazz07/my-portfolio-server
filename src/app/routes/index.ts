@@ -10,6 +10,7 @@ import { SkillRoutes } from '../modules/skill/skill.routes';
 import { ContactRoutes } from '../modules/contact/contact.routes';
 import { TechnologyRoutes } from '../modules/technology/technology.routes';
 import { SkillCategoryRoutes } from '../modules/skillCategory/skillCategory.routes';
+import { ProjectCategoryRoutes } from '../modules/projectCategory/projectCategory.routes';
 
 const router = express.Router();
 
@@ -58,6 +59,10 @@ const moduleRoutes = [
   {
     path: '/skill-categories',
     route: SkillCategoryRoutes,
+  },
+  {
+    path: '/project-categories',
+    route: ProjectCategoryRoutes,
   },
 ];
 

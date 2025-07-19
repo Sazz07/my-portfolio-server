@@ -4,12 +4,18 @@ import prisma from '../../../shared/prisma';
 import { IContactMe } from './contact.interface';
 import httpStatus from 'http-status';
 
-const createContact = async (
-  payload: Omit<IContactMe, 'id' | 'createdAt' | 'updatedAt'>
-) => {
+const createContact = async (payload: {
+  name: string;
+  email: string;
+  message: string;
+}) => {
   // Store in DB
   const contact = await prisma.contactMe.create({
-    data: payload,
+    data: {
+      name: payload.name,
+      email: payload.email,
+      message: payload.message,
+    },
   });
 
   // Send email notification to admin
@@ -19,7 +25,6 @@ const createContact = async (
       <div>
         <p><strong>Name:</strong> ${payload.name}</p>
         <p><strong>Email:</strong> ${payload.email}</p>
-        <p><strong>Subject:</strong> ${payload.subject}</p>
         <p><strong>Message:</strong></p>
         <p>${payload.message}</p>
       </div>
@@ -30,7 +35,13 @@ const createContact = async (
 };
 
 const getAllContacts = async (): Promise<IContactMe[]> => {
-  return prisma.contactMe.findMany({ orderBy: { createdAt: 'desc' } });
+  const contacts = await prisma.contactMe.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+  // Map legacy null emails to empty string for type safety
+  return contacts.map(
+    (c) => ({ ...c, email: c.email === null ? '' : c.email } as IContactMe)
+  );
 };
 
 const deleteContact = async (id: string) => {

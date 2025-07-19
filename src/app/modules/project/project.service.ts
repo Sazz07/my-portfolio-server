@@ -11,15 +11,18 @@ const createProject = async (
   payload: {
     title: string;
     description: string;
+    features?: string[];
+    techStack?: { frontend: string[]; backend: string[]; devops: string[] };
     liveUrl?: string;
     githubUrl?: string;
-    technologies?: string[];
+    categoryId: string;
   },
   files?: Express.Multer.File[]
 ): Promise<Project> => {
   let imageUrl: string | undefined;
   let imageUrls: string[] = [];
-  let technologiesArray: string[] = [];
+  let techStackData: any = null;
+  let featuresArray: string[] = [];
 
   if (files && files.length > 0) {
     const uploadPromises = files.map((file) =>
@@ -34,39 +37,115 @@ const createProject = async (
     imageUrl = imageUrls[0];
   }
 
-  if (payload.technologies && payload.technologies.length > 0) {
-    technologiesArray =
-      typeof payload.technologies === 'string'
-        ? JSON.parse(payload.technologies)
-        : payload.technologies;
+  if (payload.features && payload.features.length > 0) {
+    featuresArray =
+      typeof payload.features === 'string'
+        ? JSON.parse(payload.features)
+        : payload.features;
+  }
 
-    const techPromises = technologiesArray.map(async (tech: string) => {
-      const existingTech = await prisma.technology.findFirst({
-        where: {
-          OR: [{ name: tech }, { value: tech }],
+  if (payload.techStack) {
+    techStackData =
+      typeof payload.techStack === 'string'
+        ? JSON.parse(payload.techStack)
+        : payload.techStack;
+
+    // Extract all technologies from techStack and save them to Technology table with categories
+    const techPromises: Promise<any>[] = [];
+
+    // Handle frontend technologies
+    if (techStackData.frontend && techStackData.frontend.length > 0) {
+      const frontendCategory = await prisma.technologyCategory.upsert({
+        where: { value: 'frontend' },
+        update: {},
+        create: {
+          name: 'Frontend',
+          value: 'frontend',
         },
       });
 
-      if (!existingTech) {
-        await prisma.technology.create({
-          data: {
-            name: tech,
-            value: tech.toLowerCase().replace(/\s+/g, '-'),
-          },
-        });
-      }
-    });
+      techStackData.frontend.forEach((tech: string) => {
+        techPromises.push(
+          prisma.technology.upsert({
+            where: { name: tech },
+            update: {},
+            create: {
+              name: tech,
+              value: tech.toLowerCase().replace(/\s+/g, '-'),
+              categoryId: frontendCategory.id,
+            },
+          })
+        );
+      });
+    }
+
+    // Handle backend technologies
+    if (techStackData.backend && techStackData.backend.length > 0) {
+      const backendCategory = await prisma.technologyCategory.upsert({
+        where: { value: 'backend' },
+        update: {},
+        create: {
+          name: 'Backend',
+          value: 'backend',
+        },
+      });
+
+      techStackData.backend.forEach((tech: string) => {
+        techPromises.push(
+          prisma.technology.upsert({
+            where: { name: tech },
+            update: {},
+            create: {
+              name: tech,
+              value: tech.toLowerCase().replace(/\s+/g, '-'),
+              categoryId: backendCategory.id,
+            },
+          })
+        );
+      });
+    }
+
+    // Handle devops technologies
+    if (techStackData.devops && techStackData.devops.length > 0) {
+      const devopsCategory = await prisma.technologyCategory.upsert({
+        where: { value: 'devops' },
+        update: {},
+        create: {
+          name: 'DevOps',
+          value: 'devops',
+        },
+      });
+
+      techStackData.devops.forEach((tech: string) => {
+        techPromises.push(
+          prisma.technology.upsert({
+            where: { name: tech },
+            update: {},
+            create: {
+              name: tech,
+              value: tech.toLowerCase().replace(/\s+/g, '-'),
+              categoryId: devopsCategory.id,
+            },
+          })
+        );
+      });
+    }
 
     await Promise.all(techPromises);
   }
 
   const result = await prisma.project.create({
     data: {
-      ...payload,
-      technologies: technologiesArray,
+      title: payload.title,
+      description: payload.description,
+      features: featuresArray,
+      techStack: techStackData,
       featuredImage: imageUrl,
       images: imageUrls,
+      liveUrl: payload.liveUrl,
+      githubUrl: payload.githubUrl,
       userId,
+      categoryId: payload.categoryId,
     },
   });
 
@@ -77,6 +156,8 @@ const getAllProjects = async (
   filters: {
     searchTerm?: string;
     status?: string;
+    categoryId?: string;
+    type?: string;
   },
   options: IPaginationOptions
 ) => {
@@ -99,6 +180,24 @@ const getAllProjects = async (
           mode: 'insensitive',
         },
       },
+      {
+        techStack: {
+          path: ['frontend'],
+          array_contains: [filters.searchTerm],
+        },
+      },
+      {
+        techStack: {
+          path: ['backend'],
+          array_contains: [filters.searchTerm],
+        },
+      },
+      {
+        techStack: {
+          path: ['devops'],
+          array_contains: [filters.searchTerm],
+        },
+      },
     ];
   }
 
@@ -106,11 +205,30 @@ const getAllProjects = async (
     whereConditions.status = filters.status as any;
   }
 
+  if (filters.categoryId) {
+    whereConditions.categoryId = filters.categoryId;
+  }
+
+  // TODO: Uncomment when Prisma client is regenerated
+  // if (filters.type) {
+  //   whereConditions.type = filters.type;
+  // }
+
   const result = await prisma.project.findMany({
     where: whereConditions,
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
     skip,
     take: limit,
-    orderBy: sortBy && sortOrder ? { [sortBy]: sortOrder } : undefined,
+    orderBy:
+      sortBy && sortOrder ? { [sortBy]: sortOrder } : { createdAt: 'desc' },
   });
 
   const total = await prisma.project.count({ where: whereConditions });
@@ -120,6 +238,7 @@ const getAllProjects = async (
       page,
       limit,
       total,
+      totalPage: Math.ceil(total / limit),
     },
     data: result,
   };
@@ -249,6 +368,10 @@ const updateProject = async (
   }
 
   updateData.featuredImage = featuredImage;
+
+  if (updateData.categoryId) {
+    updateData.categoryId = updateData.categoryId;
+  }
 
   const result = await prisma.project.update({
     where: { id },

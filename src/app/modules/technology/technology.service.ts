@@ -1,32 +1,45 @@
 import httpStatus from 'http-status';
 import prisma from '../../../shared/prisma';
-import { Technology } from '@prisma/client';
+import { Technology, TechnologyCategory } from '@prisma/client';
 import ApiError from '../../../errors/ApiError';
 import { ICreateTechnology, IUpdateTechnology } from './technology.interface';
 
-const createTechnology = async (
-  payload: ICreateTechnology
-): Promise<Technology> => {
-  // Check if technology already exists
-  const existingTechnology = await prisma.technology.findFirst({
+const createTechnology = async (payload: {
+  name: string;
+  categoryId: string;
+}): Promise<Technology> => {
+  const existingTech = await prisma.technology.findFirst({
     where: {
-      OR: [{ name: payload.name }, { value: payload.value }],
+      OR: [
+        { name: payload.name },
+        { value: payload.name.toLowerCase().replace(/\s+/g, '-') },
+      ],
     },
   });
 
-  if (existingTechnology) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Technology already exists');
+  if (existingTech) {
+    return existingTech;
   }
 
   const result = await prisma.technology.create({
-    data: payload,
+    data: {
+      name: payload.name,
+      value: payload.name.toLowerCase().replace(/\s+/g, '-'),
+      categoryId: payload.categoryId,
+    },
+    include: {
+      category: true,
+    },
   });
 
   return result;
 };
 
-const getAllTechnologies = async (): Promise<Technology[]> => {
+const getAllTechnologies = async () => {
   const result = await prisma.technology.findMany({
+    include: {
+      category: true,
+    },
     orderBy: {
       name: 'asc',
     },
@@ -35,68 +48,138 @@ const getAllTechnologies = async (): Promise<Technology[]> => {
   return result;
 };
 
-const getSingleTechnology = async (id: string): Promise<Technology> => {
-  const result = await prisma.technology.findUnique({
+const getTechnologiesByCategory = async (categoryValue: string) => {
+  const result = await prisma.technology.findMany({
     where: {
-      id,
+      category: {
+        value: categoryValue,
+      },
     },
-  });
-
-  if (!result) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Technology not found');
-  }
-
-  return result;
-};
-
-const updateTechnology = async (
-  id: string,
-  payload: IUpdateTechnology
-): Promise<Technology> => {
-  // Check if technology exists
-  const technology = await prisma.technology.findUnique({
-    where: {
-      id,
+    include: {
+      category: true,
     },
-  });
-
-  if (!technology) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Technology not found');
-  }
-
-  const result = await prisma.technology.update({
-    where: {
-      id,
+    orderBy: {
+      name: 'asc',
     },
-    data: payload,
   });
 
   return result;
 };
 
-const deleteTechnology = async (id: string): Promise<void> => {
-  // Check if technology exists
-  const technology = await prisma.technology.findUnique({
-    where: {
-      id,
+const getAllTechnologyCategories = async () => {
+  const result = await prisma.technologyCategory.findMany({
+    include: {
+      technologies: {
+        orderBy: {
+          name: 'asc',
+        },
+      },
+    },
+    orderBy: {
+      name: 'asc',
     },
   });
 
-  if (!technology) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Technology not found');
+  return result;
+};
+
+const seedTechnologies = async () => {
+  // Create technology categories
+  const frontendCategory = await prisma.technologyCategory.upsert({
+    where: { value: 'frontend' },
+    update: {},
+    create: {
+      name: 'Frontend',
+      value: 'frontend',
+    },
+  });
+
+  const backendCategory = await prisma.technologyCategory.upsert({
+    where: { value: 'backend' },
+    update: {},
+    create: {
+      name: 'Backend',
+      value: 'backend',
+    },
+  });
+
+  const devopsCategory = await prisma.technologyCategory.upsert({
+    where: { value: 'devops' },
+    update: {},
+    create: {
+      name: 'DevOps',
+      value: 'devops',
+    },
+  });
+
+  // Create some common technologies
+  const commonTechnologies = [
+    // Frontend
+    { name: 'React', categoryId: frontendCategory.id },
+    { name: 'Next.js', categoryId: frontendCategory.id },
+    { name: 'Vue.js', categoryId: frontendCategory.id },
+    { name: 'Angular', categoryId: frontendCategory.id },
+    { name: 'TypeScript', categoryId: frontendCategory.id },
+    { name: 'JavaScript', categoryId: frontendCategory.id },
+    { name: 'HTML', categoryId: frontendCategory.id },
+    { name: 'CSS', categoryId: frontendCategory.id },
+    { name: 'Tailwind CSS', categoryId: frontendCategory.id },
+    { name: 'Bootstrap', categoryId: frontendCategory.id },
+
+    // Backend
+    { name: 'Node.js', categoryId: backendCategory.id },
+    { name: 'Node', categoryId: backendCategory.id },
+    { name: 'Express.js', categoryId: backendCategory.id },
+    { name: 'Python', categoryId: backendCategory.id },
+    { name: 'Django', categoryId: backendCategory.id },
+    { name: 'Flask', categoryId: backendCategory.id },
+    { name: 'Java', categoryId: backendCategory.id },
+    { name: 'Spring Boot', categoryId: backendCategory.id },
+    { name: 'C#', categoryId: backendCategory.id },
+    { name: '.NET', categoryId: backendCategory.id },
+    { name: 'PHP', categoryId: backendCategory.id },
+    { name: 'Laravel', categoryId: backendCategory.id },
+    { name: 'PostgreSQL', categoryId: backendCategory.id },
+    { name: 'MongoDB', categoryId: backendCategory.id },
+    { name: 'MySQL', categoryId: backendCategory.id },
+
+    // DevOps
+    { name: 'Docker', categoryId: devopsCategory.id },
+    { name: 'Kubernetes', categoryId: devopsCategory.id },
+    { name: 'AWS', categoryId: devopsCategory.id },
+    { name: 'Azure', categoryId: devopsCategory.id },
+    { name: 'Google Cloud', categoryId: devopsCategory.id },
+    { name: 'Git', categoryId: devopsCategory.id },
+    { name: 'GitHub Actions', categoryId: devopsCategory.id },
+    { name: 'Jenkins', categoryId: devopsCategory.id },
+    { name: 'Nginx', categoryId: devopsCategory.id },
+    { name: 'Linux', categoryId: devopsCategory.id },
+  ];
+
+  const createdTechnologies = [];
+  for (const tech of commonTechnologies) {
+    const created = await prisma.technology.upsert({
+      where: { name: tech.name },
+      update: {},
+      create: {
+        name: tech.name,
+        value: tech.name.toLowerCase().replace(/\s+/g, '-'),
+        categoryId: tech.categoryId,
+      },
+    });
+    createdTechnologies.push(created);
   }
 
-  await prisma.technology.delete({
-    where: {
-      id,
-    },
-  });
+  return {
+    categories: [frontendCategory, backendCategory, devopsCategory],
+    technologies: createdTechnologies,
+  };
 };
 
 export const TechnologyService = {
   createTechnology,
   getAllTechnologies,
-  getSingleTechnology,
-  updateTechnology,
-  deleteTechnology,
+  getTechnologiesByCategory,
+  getAllTechnologyCategories,
+  seedTechnologies,
 };

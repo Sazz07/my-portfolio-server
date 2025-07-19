@@ -21,7 +21,12 @@ const createProject = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllProjects = catchAsync(async (req: Request, res: Response) => {
-  const filters = pick(req.query, ['searchTerm', 'status']);
+  const filters = pick(req.query, [
+    'searchTerm',
+    'status',
+    'categoryId',
+    'type',
+  ]);
   const options = pick(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
 
   const result = await ProjectService.getAllProjects(filters, options);
