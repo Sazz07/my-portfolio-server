@@ -3,9 +3,15 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 
-// Ensure upload directory exists
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
-const BLOG_IMAGES_DIR = path.join(UPLOAD_DIR, 'blog-images');
+// Use NODE_ENV to determine upload directories
+const isProduction = process.env.NODE_ENV === 'production';
+const UPLOAD_DIR = isProduction
+  ? '/tmp/uploads'
+  : path.join(process.cwd(), 'uploads');
+
+const BLOG_IMAGES_DIR = isProduction
+  ? '/tmp/uploads/blog-images'
+  : path.join(UPLOAD_DIR, 'blog-images');
 
 // Create directories if they don't exist
 [UPLOAD_DIR, BLOG_IMAGES_DIR].forEach((dir) => {

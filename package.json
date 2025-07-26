@@ -3,6 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "prod": "node dist/server.js",
+    "generate-module": "ts-node src/scripts/generate-module.ts",
+    "postinstall": "prisma generate"
+  },
   "dependencies": {
     "@prisma/client": "^6.7.0",
     "@types/cookie-parser": "^1.4.8",
@@ -22,13 +29,6 @@
     "sslcommerz-lts": "^1.1.0",
     "uuid": "^11.1.0",
     "zod": "^3.24.4"
-  },
-  "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc",
-    "prod": "node dist/server.js",
-    "generate-module": "ts-node src/scripts/generate-module.ts",
-    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx src/shared/seed.ts"

@@ -11,8 +11,11 @@ type FileUploadOptions = {
   validationSchema?: AnyZodObject;
 };
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(process.cwd(), 'uploads');
+// Use NODE_ENV to determine upload directory
+const isProduction = process.env.NODE_ENV === 'production';
+const uploadsDir = isProduction
+  ? '/tmp/uploads'
+  : path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
