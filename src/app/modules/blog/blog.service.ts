@@ -12,7 +12,6 @@ import { JwtPayload } from 'jsonwebtoken';
 import { IPaginationOptions } from '../../../interfaces/common';
 import { paginationHelpers } from '../../../helpers/paginationHelper';
 import { BlogStatus } from '@prisma/client';
-import { deleteImage, extractFilenameFromUrl } from '../../../utils/image';
 import { BlogHelper } from './blog.helper';
 import { FileUploadHelper } from '../../../helpers/fileUploadHelper';
 
@@ -310,9 +309,9 @@ const updateBlog = async (
   if (imagesToRemove.length > 0) {
     for (const imageUrl of imagesToRemove) {
       try {
-        const publicId = extractFilenameFromUrl(imageUrl);
+        const publicId = imageUrl.split('/').pop()?.split('.')[0];
         if (publicId) {
-          await deleteImage(publicId);
+          await FileUploadHelper.deleteFromCloudinary(publicId);
         }
       } catch (error) {
         console.error('Error deleting image:', error);
@@ -390,8 +389,10 @@ const deleteBlog = async (idOrSlug: string, authUser: JwtPayload) => {
   }
 
   if (blog.featuredImage) {
-    const filename = extractFilenameFromUrl(blog.featuredImage);
-    await deleteImage(filename);
+    const publicId = blog.featuredImage.split('/').pop()?.split('.')[0];
+    if (publicId) {
+      await FileUploadHelper.deleteFromCloudinary(publicId);
+    }
   }
 
   const result = await prisma.blog.delete({
